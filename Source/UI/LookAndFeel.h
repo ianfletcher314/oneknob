@@ -34,10 +34,11 @@ public:
                           float sliderPosProportional, float, float,
                           juce::Slider&) override
     {
-        auto bounds = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height).reduced(12.0f);
+        // Give more horizontal margin for side labels
+        auto bounds = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height).reduced(30.0f, 15.0f);
         float cx = bounds.getCentreX();
         float cy = bounds.getCentreY();
-        float radius = juce::jmin(bounds.getWidth(), bounds.getHeight()) / 2.0f - 8.0f;
+        float radius = juce::jmin(bounds.getWidth(), bounds.getHeight()) / 2.0f - 4.0f;
 
         // Outer glow based on position - MORE PROMINENT
         float normalizedPos = sliderPosProportional * 2.0f - 1.0f; // -1 to +1
@@ -104,25 +105,52 @@ public:
         g.setColour(indicatorColor);
         g.drawLine(ix1, iy1, ix2, iy2, 4.0f);
 
-        // Draw scale labels around the knob - bigger font
-        g.setFont(12.0f);
+        // Draw scale labels - rotated vertically, LARGER font
+        g.setFont(juce::Font(13.0f, juce::Font::bold));
 
-        // Left label (EXPAND)
-        g.setColour(Colors::expandColor);
-        g.drawText("EXP", cx - radius - 38, cy - 6, 32, 14, juce::Justification::centredRight);
+        // Left label (EXPAND) - rotated to read bottom-to-top
+        {
+            g.saveState();
+            float labelX = cx - radius - 14;
+            float labelY = cy;
+            g.setOrigin((int)labelX, (int)labelY);
+            g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi));
+            // Shadow
+            g.setColour(juce::Colours::black.withAlpha(0.8f));
+            g.drawText("EXPAND", -40 + 1, -8 + 1, 80, 16, juce::Justification::centred);
+            // Text
+            g.setColour(Colors::expandColor);
+            g.drawText("EXPAND", -40, -8, 80, 16, juce::Justification::centred);
+            g.restoreState();
+        }
 
-        // Right label (COMPRESS)
-        g.setColour(Colors::compressColor);
-        g.drawText("COMP", cx + radius + 6, cy - 6, 40, 14, juce::Justification::centredLeft);
+        // Right label (COMPRESS) - rotated to read bottom-to-top
+        {
+            g.saveState();
+            float labelX = cx + radius + 14;
+            float labelY = cy;
+            g.setOrigin((int)labelX, (int)labelY);
+            g.addTransform(juce::AffineTransform::rotation(juce::MathConstants<float>::halfPi));
+            // Shadow
+            g.setColour(juce::Colours::black.withAlpha(0.8f));
+            g.drawText("COMPRESS", -50 + 1, -8 + 1, 100, 16, juce::Justification::centred);
+            // Text
+            g.setColour(Colors::compressColor);
+            g.drawText("COMPRESS", -50, -8, 100, 16, juce::Justification::centred);
+            g.restoreState();
+        }
 
-        // Center tick mark - bigger
+        // Center tick mark - more prominent
         g.setColour(Colors::accentYellow);
-        float tickY = cy - radius - 6;
+        float tickY = cy - radius - 3;
         g.drawLine(cx, tickY, cx, tickY - 12, 3.0f);
 
-        // Add "0" label at center
-        g.setFont(10.0f);
-        g.drawText("0", cx - 10, tickY - 24, 20, 12, juce::Justification::centred);
+        // "0" label at center top - BIGGER with shadow
+        g.setFont(juce::Font(14.0f, juce::Font::bold));
+        g.setColour(juce::Colours::black.withAlpha(0.8f));
+        g.drawText("0", cx - 10 + 1, tickY - 26 + 1, 20, 16, juce::Justification::centred);
+        g.setColour(Colors::accentYellow);
+        g.drawText("0", cx - 10, tickY - 26, 20, 16, juce::Justification::centred);
     }
 
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,

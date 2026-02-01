@@ -21,10 +21,8 @@ private:
     juce::Slider amountSlider;
     juce::Label titleLabel;
     juce::Label valueLabel;
-    juce::ToggleButton bypassButton;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> amountAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
 
     juce::Image backgroundImage;
 
