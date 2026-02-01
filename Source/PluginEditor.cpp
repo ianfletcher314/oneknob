@@ -9,7 +9,7 @@ OneKnobAudioProcessorEditor::OneKnobAudioProcessorEditor(OneKnobAudioProcessor& 
 
     // Title
     titleLabel.setText("ONEKNOB", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(24.0f, juce::Font::bold));
+    titleLabel.setFont(juce::Font(32.0f, juce::Font::bold));
     titleLabel.setColour(juce::Label::textColourId, Colors::textPrimary);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
@@ -24,8 +24,8 @@ OneKnobAudioProcessorEditor::OneKnobAudioProcessorEditor(OneKnobAudioProcessor& 
         audioProcessor.getAPVTS(), "amount", amountSlider);
 
     // Value label
-    valueLabel.setFont(juce::Font(14.0f));
-    valueLabel.setColour(juce::Label::textColourId, Colors::textSecondary);
+    valueLabel.setFont(juce::Font(18.0f, juce::Font::bold));
+    valueLabel.setColour(juce::Label::textColourId, Colors::accentYellow);
     valueLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(valueLabel);
 
@@ -33,13 +33,25 @@ OneKnobAudioProcessorEditor::OneKnobAudioProcessorEditor(OneKnobAudioProcessor& 
     {
         float val = (float)amountSlider.getValue();
         juce::String text;
+        juce::Colour labelColor;
+
         if (std::abs(val) < 1.0f)
+        {
             text = "BYPASS";
+            labelColor = Colors::accentYellow;
+        }
         else if (val < 0)
+        {
             text = "EXPAND " + juce::String(std::abs(val), 0) + "%";
+            labelColor = Colors::expandColor;
+        }
         else
+        {
             text = "COMPRESS " + juce::String(val, 0) + "%";
+            labelColor = Colors::compressColor;
+        }
         valueLabel.setText(text, juce::dontSendNotification);
+        valueLabel.setColour(juce::Label::textColourId, labelColor);
     };
     amountSlider.onValueChange(); // Initialize
 
@@ -55,7 +67,7 @@ OneKnobAudioProcessorEditor::OneKnobAudioProcessorEditor(OneKnobAudioProcessor& 
     if (imageFile.existsAsFile())
         backgroundImage = juce::ImageFileFormat::loadFrom(imageFile);
 
-    setSize(280, 340);
+    setSize(380, 480);
 }
 
 OneKnobAudioProcessorEditor::~OneKnobAudioProcessorEditor()
@@ -65,18 +77,11 @@ OneKnobAudioProcessorEditor::~OneKnobAudioProcessorEditor()
 
 void OneKnobAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    // Background gradient
-    juce::ColourGradient bgGradient(
-        Colors::background, 0, 0,
-        Colors::panelBg, 0, (float)getHeight(), false);
-    g.setGradientFill(bgGradient);
-    g.fillAll();
+    auto bounds = getLocalBounds().toFloat();
 
-    // Draw background image if loaded
+    // Draw background image if loaded - more visible now
     if (backgroundImage.isValid())
     {
-        auto bounds = getLocalBounds().toFloat();
-
         // Calculate scaling to cover the area
         float imgW = (float)backgroundImage.getWidth();
         float imgH = (float)backgroundImage.getHeight();
@@ -89,67 +94,74 @@ void OneKnobAudioProcessorEditor::paint(juce::Graphics& g)
         float srcW = bounds.getWidth() / scale;
         float srcH = bounds.getHeight() / scale;
 
-        g.setOpacity(0.25f); // Subtle background
+        g.setOpacity(0.6f);  // More visible background
         g.drawImage(backgroundImage,
                     bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(),
                     (int)srcX, (int)srcY, (int)srcW, (int)srcH);
         g.setOpacity(1.0f);
-
-        // Dark overlay for readability
-        g.setColour(Colors::background.withAlpha(0.7f));
+    }
+    else
+    {
+        // Fallback gradient if no image
+        juce::ColourGradient bgGradient(
+            Colors::background, 0, 0,
+            Colors::panelBg, 0, (float)getHeight(), false);
+        g.setGradientFill(bgGradient);
         g.fillAll();
     }
 
-    // Main panel
-    auto panelBounds = getLocalBounds().reduced(12).toFloat();
-    g.setColour(Colors::panelBg.withAlpha(0.9f));
-    g.fillRoundedRectangle(panelBounds, 12.0f);
+    // Semi-transparent dark overlay for readability
+    g.setColour(Colors::background.withAlpha(0.5f));
+    g.fillAll();
 
-    g.setColour(Colors::panelBorder);
-    g.drawRoundedRectangle(panelBounds, 12.0f, 1.5f);
+    // Main panel - more transparent to show background
+    auto panelBounds = getLocalBounds().reduced(16).toFloat();
+    g.setColour(Colors::panelBg.withAlpha(0.75f));
+    g.fillRoundedRectangle(panelBounds, 16.0f);
+
+    // Colorful border gradient
+    juce::ColourGradient borderGradient(
+        Colors::expandColor, panelBounds.getX(), panelBounds.getCentreY(),
+        Colors::compressColor, panelBounds.getRight(), panelBounds.getCentreY(), false);
+    g.setGradientFill(borderGradient);
+    g.drawRoundedRectangle(panelBounds, 16.0f, 2.0f);
 
     // Subtitle
-    g.setColour(Colors::textDim);
-    g.setFont(10.0f);
-    g.drawText("COMPRESSOR / EXPANDER", panelBounds.removeFromTop(50).translated(0, 35),
+    g.setColour(Colors::textSecondary);
+    g.setFont(12.0f);
+    g.drawText("COMPRESSOR / EXPANDER", panelBounds.removeFromTop(60).translated(0, 45),
                juce::Justification::centred);
 }
 
 void OneKnobAudioProcessorEditor::resized()
 {
-    auto bounds = getLocalBounds().reduced(12);
-
-    // Use FlexBox for centered layout
-    juce::FlexBox mainFlex;
-    mainFlex.flexDirection = juce::FlexBox::Direction::column;
-    mainFlex.justifyContent = juce::FlexBox::JustifyContent::center;
-    mainFlex.alignItems = juce::FlexBox::AlignItems::center;
+    auto bounds = getLocalBounds().reduced(16);
 
     // Title at top
-    int titleHeight = 40;
+    int titleHeight = 50;
     titleLabel.setBounds(bounds.removeFromTop(titleHeight));
 
     // Spacing
-    bounds.removeFromTop(10);
+    bounds.removeFromTop(15);
 
-    // Main knob - centered
-    int knobSize = 180;
+    // Main knob - BIG and centered
+    int knobSize = 260;
     int knobX = (bounds.getWidth() - knobSize) / 2;
     amountSlider.setBounds(bounds.getX() + knobX, bounds.getY(), knobSize, knobSize);
     bounds.removeFromTop(knobSize);
 
     // Spacing
-    bounds.removeFromTop(8);
+    bounds.removeFromTop(15);
 
     // Value label - centered
-    int labelHeight = 20;
+    int labelHeight = 28;
     valueLabel.setBounds(bounds.removeFromTop(labelHeight));
 
     // Spacing
-    bounds.removeFromTop(12);
+    bounds.removeFromTop(20);
 
     // Bypass button - centered
-    int buttonWidth = 80;
+    int buttonWidth = 100;
     int buttonX = (bounds.getWidth() - buttonWidth) / 2;
-    bypassButton.setBounds(bounds.getX() + buttonX, bounds.getY(), buttonWidth, 24);
+    bypassButton.setBounds(bounds.getX() + buttonX, bounds.getY(), buttonWidth, 28);
 }
